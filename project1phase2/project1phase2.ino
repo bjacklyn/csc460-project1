@@ -47,28 +47,28 @@ void poll_button_movement_task()
     no_speed_flag = 0;
   } 
   else if (movement > 350 && movement < 450) {
-    roomba_speed = -100;
+    roomba_speed = -150;
     no_speed_flag = 1;
     stop_packet_insurance = 0;
   } 
   else if(movement > 550 && movement < 650){
-    roomba_speed = 100;
+    roomba_speed = 150;
     no_speed_flag = 1;
     stop_packet_insurance = 0;
   } else if(movement > 150 && movement < 350) {
-    roomba_speed = -200;
+    roomba_speed = -250;
     no_speed_flag = 1;
     stop_packet_insurance = 0;
   } else if(movement > 650 && movement < 950){
-    roomba_speed = 200;
+    roomba_speed = 250;
     no_speed_flag = 1;
     stop_packet_insurance = 0;
   } else if(movement < 150) {
-    roomba_speed = -300;
+    roomba_speed = -350;
     no_speed_flag = 1;
     stop_packet_insurance = 0;
   } else {
-    roomba_speed = 300;
+    roomba_speed = 350;
     no_speed_flag = 1;
     stop_packet_insurance = 0;
   }
@@ -78,61 +78,61 @@ void poll_button_movement_task()
     no_rotation_flag = 0;
   } 
   else if (rotation > 350 && rotation < 450) {
-    roomba_speed = 100;
+    roomba_speed = 150;
     roomba_rotation = 0xFFFF;
     no_rotation_flag = 1;
     stop_packet_insurance = 0;
   } 
   else if (rotation > 150 && rotation < 350) {
-    roomba_speed = 200;
+    roomba_speed = 250;
     roomba_rotation = 0xFFFF;
     no_rotation_flag = 1;
     stop_packet_insurance = 0;
   }
   else if (rotation < 150) {
-    roomba_speed = 300;
+    roomba_speed = 350;
     roomba_rotation = 0xFFFF;
     no_rotation_flag = 1;
     stop_packet_insurance = 0;
   }
   else if (rotation > 550 && rotation < 650) {
-    roomba_speed = 100;
+    roomba_speed = 150;
     roomba_rotation = 0;
     no_rotation_flag = 1;
     stop_packet_insurance = 0;
   }
   else if (rotation > 650 && rotation < 950) {
-    roomba_speed = 200;
+    roomba_speed = 250;
     roomba_rotation = 0;
     no_rotation_flag = 1;
     stop_packet_insurance = 0;
   } 
   else {
-    roomba_speed = 300;
+    roomba_speed = 350;
     roomba_rotation = 0;
     no_rotation_flag = 1;
     stop_packet_insurance = 0;
   }
   if(movement > 950 && rotation > 950) {
     roomba_speed = 300;
-    roomba_rotation = 200;
+    roomba_rotation = 400;
     no_rotation_flag = 1;
-    stop_packet_insurance = 0
+    stop_packet_insurance = 0;
   } else if(movement > 950 && rotation < 150) {
     roomba_speed = 300;
-    roomba_rotation = -200;
+    roomba_rotation = -400;
     no_rotation_flag = 1;
-    stop_packet_insurance = 0
+    stop_packet_insurance = 0;
   } else if(movement < 150 && rotation < 150) {
     roomba_speed = -300;
-    roomba_rotation = 200;
+    roomba_rotation = 400;
     no_rotation_flag = 1;
-    stop_packet_insurance = 0
+    stop_packet_insurance = 0;
   } else if(movement < 150 && rotation > 950) {
     roomba_speed = -300;
-    roomba_rotation = -200;
+    roomba_rotation = -400;
     no_rotation_flag = 1;
-    stop_packet_insurance = 0
+    stop_packet_insurance = 0;
   }
   if(no_speed_flag == 1 || no_rotation_flag == 1){
     send_movement_packet();
