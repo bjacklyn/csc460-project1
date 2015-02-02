@@ -29,6 +29,10 @@ volatile int button_switch_state = LOW;        // the current reading from the i
 volatile int last_button_switch_state = LOW;   // the previous reading from the input pin
 
 volatile int ir_fire_flag = 0;
+volatile int no_speed_flag = 0;
+volatile int no_rotation_flag = 0;
+volatile int stop_packet_send = 0;
+volatile int stop_packet_insurance = 0;
 volatile int roomba_speed = 0;
 volatile int roomba_rotation = 0x8000;
 
@@ -40,27 +44,44 @@ void poll_button_movement_task()
 
   if (movement > 400 && movement < 600) {
     roomba_speed = 0;
+    no_speed_flag = 0;
   } 
   else if (movement < 400) {
     roomba_speed = -200;
+    no_speed_flag = 1;
+    stop_packet_insurance = 0;
   } 
   else {
-    roomba_speed = 200;   
+    roomba_speed = 200;
+    no_speed_flag = 1;
+    stop_packet_insurance = 0;
   }
   
   if (rotation > 400 && rotation < 600) {
     roomba_rotation = 0x8000;
+    no_rotation_flag = 0;
   } 
   else if (rotation < 400) {
     roomba_speed = 200;
     roomba_rotation = 0xFFFF;
+    no_rotation_flag = 1;
+    stop_packet_insurance = 0;
   } 
   else {
     roomba_speed = 200;
     roomba_rotation = 0;
+    no_rotation_flag = 1;
+    stop_packet_insurance = 0;
   }
-  
-  send_movement_packet();
+  if(no_speed_flag == 1 || no_rotation_flag == 1){
+    send_movement_packet();
+    stop_packet_send = 0;
+  } else {
+    if(stop_packet_send == 0 || stop_packet_insurance < 10) {
+      stop_packet_insurance++;
+      send_movement_packet();
+    }
+  }
 }
 
 void send_movement_packet() 
@@ -190,5 +211,8 @@ void loop()
 
 void radio_rxhandler(uint8_t pipe_number)
 {
+  if(no_speed_flag == 0 && no_rotation_flag == 0) {
+    stop_packet_send = 1;
+  }
   rxflag = 1;
 }
