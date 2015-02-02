@@ -36,12 +36,8 @@ volatile int stop_packet_insurance = 0;
 volatile int roomba_speed = 0;
 volatile int roomba_rotation = 0x8000;
 
-// task function for button_movement
-void poll_button_movement_task()
-{
-  int movement = analogRead(button_movement_pin); 
-  int rotation = analogRead(button_rotation_pin); 
-
+// controls movement parameters
+void movement_set(uint16_t movement) {
   if (movement > 450 && movement < 550) {
     roomba_speed = 0;
     no_speed_flag = 0;
@@ -72,7 +68,10 @@ void poll_button_movement_task()
     no_speed_flag = 1;
     stop_packet_insurance = 0;
   }
-  
+}
+
+// controls rotation parameters
+void rotation_set(uint16_t rotation) {
   if (rotation > 450 && rotation < 550) {
     roomba_rotation = 0x8000;
     no_rotation_flag = 0;
@@ -113,6 +112,10 @@ void poll_button_movement_task()
     no_rotation_flag = 1;
     stop_packet_insurance = 0;
   }
+}
+
+// controls angle parameters
+void angle_set(uint16_t movement, uint16_t rotation) {
   if(movement > 950 && rotation > 950) {
     roomba_speed = 300;
     roomba_rotation = 400;
@@ -143,6 +146,18 @@ void poll_button_movement_task()
       send_movement_packet();
     }
   }
+}
+
+
+// task function for button_movement
+void poll_button_movement_task()
+{
+  int movement = analogRead(button_movement_pin); 
+  int rotation = analogRead(button_rotation_pin); 
+
+  movement_set(movement);
+  rotation_set(rotation);
+  angle_set(movement, rotation);
 }
 
 void send_movement_packet() 
