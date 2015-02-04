@@ -113,17 +113,17 @@ void movement_set(uint16_t movement) {
 void acceleration_calc() {
   if(last_speed == NO_SPEED) {
     if(current_speed == REVERSE_FAST) {
-      if(roomba_speed > -350) {
+      if(roomba_speed > -500) {
         roomba_speed -= acceleration;
       }
-      if(roomba_speed < -350) {
+      if(roomba_speed < -500) {
         last_speed = REVERSE_FAST;
       }
     } else if(current_speed == FAST) {
-      if(roomba_speed < 350) { 
+      if(roomba_speed < 500) { 
         roomba_speed += acceleration;
       }
-      if(roomba_speed > 350) {
+      if(roomba_speed > 500) {
         last_speed = FAST;
       }
     }else if(current_speed == REVERSE_MEDIUM) {
@@ -134,10 +134,10 @@ void acceleration_calc() {
         last_speed = REVERSE_MEDIUM;
       }   
     } else if(current_speed == MEDIUM) {
-      if(roomba_speed < 250) {
+      if(roomba_speed < 350) {
         roomba_speed += acceleration;
       }
-      if(roomba_speed > 250) {
+      if(roomba_speed > 350) {
         last_speed = MEDIUM;
       }
     } else if(current_speed == REVERSE_SLOW) {
@@ -160,17 +160,17 @@ void acceleration_calc() {
     }
   } else if(last_speed == REVERSE_SLOW) {
     if(current_speed == REVERSE_FAST) {
+      if(roomba_speed > -500) {
+        roomba_speed -= acceleration;
+      }
+      if(roomba_speed < -500) {
+        last_speed = REVERSE_FAST;
+      }
+    } else if(current_speed == REVERSE_MEDIUM) {
       if(roomba_speed > -350) {
         roomba_speed -= acceleration;
       }
       if(roomba_speed < -350) {
-        last_speed = REVERSE_FAST;
-      }
-    } else if(current_speed == REVERSE_MEDIUM) {
-      if(roomba_speed > -250) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed < -250) {
         last_speed = REVERSE_MEDIUM;
       }
     } else if(current_speed == REVERSE_SLOW) {
@@ -186,17 +186,17 @@ void acceleration_calc() {
     }
   } else if(last_speed == SLOW) {
     if(current_speed == FAST) {
+      if(roomba_speed < 500) {
+        roomba_speed += acceleration;
+      }
+      if(roomba_speed > 500) {
+        last_speed = FAST;
+      }
+    } else if(current_speed == MEDIUM) {
       if(roomba_speed < 350) {
         roomba_speed += acceleration;
       }
       if(roomba_speed > 350) {
-        last_speed = FAST;
-      }
-    } else if(current_speed == MEDIUM) {
-      if(roomba_speed < 250) {
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed > 250) {
         last_speed = MEDIUM;
       }
     } else if(current_speed == SLOW) {
@@ -212,17 +212,17 @@ void acceleration_calc() {
     }
   } else if(last_speed == REVERSE_MEDIUM) {
     if(current_speed == REVERSE_FAST) {
+      if(roomba_speed > -500) {
+        roomba_speed -= acceleration;
+      }
+      if(roomba_speed < -500) {
+        last_speed = REVERSE_FAST;
+      }
+    } else if(current_speed == REVERSE_MEDIUM) {
       if(roomba_speed > -350) {
         roomba_speed -= acceleration;
       }
       if(roomba_speed < -350) {
-        last_speed = REVERSE_FAST;
-      }
-    } else if(current_speed == REVERSE_MEDIUM) {
-      if(roomba_speed > -250) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed < -250) {
         last_speed = REVERSE_MEDIUM;
       }
     } else if(current_speed == REVERSE_SLOW) {
@@ -238,17 +238,17 @@ void acceleration_calc() {
     }
   } else if(last_speed == MEDIUM) {
     if(current_speed == FAST) {
+      if(roomba_speed < 500) {
+        roomba_speed += acceleration;
+      }
+      if(roomba_speed > 500) {
+        last_speed = FAST;
+      }
+    } else if(current_speed == MEDIUM) {
       if(roomba_speed < 350) {
         roomba_speed += acceleration;
       }
       if(roomba_speed > 350) {
-        last_speed = FAST;
-      }
-    } else if(current_speed == MEDIUM) {
-      if(roomba_speed < 250) {
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed > 250) {
         last_speed = MEDIUM;
       }
     } else if(current_speed == SLOW) {
@@ -264,17 +264,17 @@ void acceleration_calc() {
     }
   } else if(last_speed == REVERSE_FAST) {
     if(current_speed == REVERSE_FAST) {
-      if(roomba_speed > -350) {
+      if(roomba_speed > -500) {
         roomba_speed -= acceleration;
       }
-      if(roomba_speed < -350) {
+      if(roomba_speed < -500) {
         last_speed = REVERSE_FAST;
       }
     } else if(current_speed == REVERSE_MEDIUM) {
-      if(roomba_speed < -250) {
+      if(roomba_speed < -350) {
         roomba_speed += acceleration;
       }
-      if(roomba_speed < -250) {
+      if(roomba_speed < -350) {
         last_speed = REVERSE_MEDIUM;
       }
     } else if(current_speed == REVERSE_SLOW) {
@@ -290,17 +290,17 @@ void acceleration_calc() {
     }
   } else {
     if(current_speed == FAST) {
-      if(roomba_speed < 350) {
+      if(roomba_speed < 500) {
         roomba_speed += acceleration;
       }
-      if(roomba_speed > 350) {
+      if(roomba_speed > 500) {
         last_speed = FAST;
       }
     } else if(current_speed == MEDIUM) {
-      if(roomba_speed > 250) {
+      if(roomba_speed > 350) {
         roomba_speed -= acceleration;
       }
-      if(roomba_speed > 250) {
+      if(roomba_speed > 350) {
         last_speed = MEDIUM;
       }
     } else if(current_speed == SLOW) {
