@@ -54,12 +54,14 @@ volatile int button_switch_state = LOW;        // the current reading from the i
 volatile int last_button_switch_state = LOW;   // the previous reading from the input pin
 
 volatile int ir_fire_flag = 0;
+volatile int song_fire_flag = 0;
+volatile int song_rotation = 0;
 volatile int no_speed_flag = 0;
 volatile int no_rotation_flag = 0;
 volatile int stop_packet_insurance = 0;
 volatile int roomba_speed = 0;
 volatile int roomba_rotation = 0x8000;
-volatile int acceleration = 30;
+volatile int acceleration = 10;
 
 // controls movement parameters
 void movement_set(uint16_t movement) {
@@ -111,207 +113,192 @@ void movement_set(uint16_t movement) {
 }
 
 void acceleration_calc() {
-  if(last_speed == NO_SPEED) {
-    if(current_speed == REVERSE_FAST) {
-      if(roomba_speed > -500) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed < -500) {
-        last_speed = REVERSE_FAST;
-      }
-    } else if(current_speed == FAST) {
-      if(roomba_speed < 500) { 
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed > 500) {
-        last_speed = FAST;
-      }
-    }else if(current_speed == REVERSE_MEDIUM) {
-      if(roomba_speed > -250) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed < -250) {
-        last_speed = REVERSE_MEDIUM;
-      }   
-    } else if(current_speed == MEDIUM) {
-      if(roomba_speed < 350) {
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed > 350) {
-        last_speed = MEDIUM;
-      }
-    } else if(current_speed == REVERSE_SLOW) {
-      if(roomba_speed > -150) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed < -150) {
-        last_speed = REVERSE_SLOW;
-      }
-    } else if (current_speed == SLOW) {
-      if(roomba_speed < 150) {
-        roomba_speed = acceleration;
-      }
-      if(roomba_speed > 150) {
-        last_speed = SLOW;
-      }
+  switch (last_speed) {
+      case REVERSE_SLOW:
+        acceleration_reverse_slow();
+        break;
+      case REVERSE_MEDIUM:
+        acceleration_reverse_medium();
+        break;
+      case REVERSE_FAST:
+        acceleration_reverse_fast();
+        break;
+      case SLOW:
+        acceleration_slow();
+        break;
+      case MEDIUM:
+        acceleration_medium();
+        break;
+      case FAST:
+        acceleration_fast();
+        break;
+      default:
+        acceleration_no_speed();
+  }
+}
+
+void acceleration_no_speed() {
+  if(current_speed != last_speed && (current_speed == FAST || current_speed == MEDIUM || current_speed == SLOW)) {
+    roomba_speed += acceleration;
+    if(roomba_speed > 500) {
+      last_speed = FAST;
+    } else if(roomba_speed > 350) {
+      last_speed = MEDIUM;
+    } else if(roomba_speed > 150) {
+      last_speed = SLOW;
     } else {
-      roomba_speed = 0;
       last_speed = NO_SPEED;
     }
-  } else if(last_speed == REVERSE_SLOW) {
-    if(current_speed == REVERSE_FAST) {
-      if(roomba_speed > -500) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed < -500) {
-        last_speed = REVERSE_FAST;
-      }
-    } else if(current_speed == REVERSE_MEDIUM) {
-      if(roomba_speed > -350) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed < -350) {
-        last_speed = REVERSE_MEDIUM;
-      }
-    } else if(current_speed == REVERSE_SLOW) {
-      if(roomba_speed > -150) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed < -150) {
-        last_speed = REVERSE_SLOW;
-      }
+  } else if(current_speed != last_speed && (current_speed == REVERSE_FAST || current_speed == REVERSE_MEDIUM || current_speed == REVERSE_SLOW)) {
+    roomba_speed -= acceleration;
+    if(roomba_speed < -500) {
+      last_speed = REVERSE_FAST;
+    } else if(roomba_speed < -350) {
+      last_speed = REVERSE_MEDIUM;
+    } else if(roomba_speed < -150) {
+      last_speed = REVERSE_SLOW;
     } else {
-      roomba_speed = 0;
       last_speed = NO_SPEED;
     }
-  } else if(last_speed == SLOW) {
-    if(current_speed == FAST) {
-      if(roomba_speed < 500) {
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed > 500) {
-        last_speed = FAST;
-      }
-    } else if(current_speed == MEDIUM) {
-      if(roomba_speed < 350) {
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed > 350) {
-        last_speed = MEDIUM;
-      }
-    } else if(current_speed == SLOW) {
-      if(roomba_speed < 150) {
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed > 150) {
-        last_speed = SLOW;
-      }
+  }  else {
+    last_speed = NO_SPEED;
+    roomba_speed = 0;
+  }
+}
+
+void acceleration_reverse_slow() {
+  if(current_speed != last_speed && (current_speed == REVERSE_FAST || current_speed == REVERSE_MEDIUM || current_speed == REVERSE_SLOW)) {
+    roomba_speed -= acceleration;
+    if(roomba_speed < -500) {
+      last_speed = REVERSE_FAST;
+    } else if(roomba_speed < -350) {
+      last_speed = REVERSE_MEDIUM;
+    } else if(roomba_speed < -150) {
+      last_speed = REVERSE_SLOW;
     } else {
-      roomba_speed = 0;
       last_speed = NO_SPEED;
     }
-  } else if(last_speed == REVERSE_MEDIUM) {
-    if(current_speed == REVERSE_FAST) {
-      if(roomba_speed > -500) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed < -500) {
-        last_speed = REVERSE_FAST;
-      }
-    } else if(current_speed == REVERSE_MEDIUM) {
-      if(roomba_speed > -350) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed < -350) {
-        last_speed = REVERSE_MEDIUM;
-      }
-    } else if(current_speed == REVERSE_SLOW) {
-      if(roomba_speed < -150) {
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed < -150) {
-        last_speed = REVERSE_SLOW;
-      }
+  } else if(current_speed == last_speed) {
+    if(roomba_speed < -180) {
+      roomba_speed += acceleration;
+    } else if(rooba_speed > -140) {
+      roomba_speed -= acceleration;
+    }
+   last_speed = REVERSE_SLOW; 
+  }
+}
+
+void acceleration_slow() {
+  if(current_speed != last_speed && (current_speed == FAST || current_speed == MEDIUM || current_speed == SLOW)) {
+    roomba_speed += acceleration;
+    if(roomba_speed > 500) {
+      last_speed = FAST;
+    } else if(roomba_speed > 350) {
+      last_speed = MEDIUM;
+    } else if(roomba_speed > 150) {
+      last_speed = SLOW;
     } else {
-      roomba_speed = 0;
       last_speed = NO_SPEED;
     }
-  } else if(last_speed == MEDIUM) {
-    if(current_speed == FAST) {
-      if(roomba_speed < 500) {
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed > 500) {
-        last_speed = FAST;
-      }
-    } else if(current_speed == MEDIUM) {
-      if(roomba_speed < 350) {
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed > 350) {
-        last_speed = MEDIUM;
-      }
-    } else if(current_speed == SLOW) {
-      if(roomba_speed > 150) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed > 150) {
-        last_speed = SLOW;
-      }
+  } else if(current_speed == last_speed) {
+    if(roomba_speed > 180) {
+      roomba_speed -= acceleration;
+    } else if(roomba_speed < 140) {
+      roomba_speed += acceleration;
+    }
+    last_speed = SLOW;
+  }
+}
+
+void acceleration_reverse_medium() {
+  if(current_speed != last_speed && (current_speed == REVERSE_FAST || current_speed == REVERSE_MEDIUM)) {
+    roomba_speed -= acceleration;
+    if(roomba_speed < -500) {
+      last_speed = REVERSE_FAST;
+    } else if(roomba_speed < -350) {
+      last_speed = REVERSE_MEDIUM;
     } else {
-      roomba_speed = 0;
       last_speed = NO_SPEED;
     }
-  } else if(last_speed == REVERSE_FAST) {
-    if(current_speed == REVERSE_FAST) {
-      if(roomba_speed > -500) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed < -500) {
-        last_speed = REVERSE_FAST;
-      }
-    } else if(current_speed == REVERSE_MEDIUM) {
-      if(roomba_speed < -350) {
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed < -350) {
-        last_speed = REVERSE_MEDIUM;
-      }
-    } else if(current_speed == REVERSE_SLOW) {
-      if(roomba_speed < -150) {
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed < -150) {
-        last_speed = REVERSE_SLOW;
-      }
+  } else if(current_speed != last_speed && current_speed == REVERSE_SLOW) {
+    roomba_speed += acceleration;
+    if(roomba_speed < -150) {
+      last_speed = REVERSE_SLOW;
     } else {
-      roomba_speed = 0;
       last_speed = NO_SPEED;
     }
-  } else {
-    if(current_speed == FAST) {
-      if(roomba_speed < 500) {
-        roomba_speed += acceleration;
-      }
-      if(roomba_speed > 500) {
-        last_speed = FAST;
-      }
-    } else if(current_speed == MEDIUM) {
-      if(roomba_speed > 350) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed > 350) {
-        last_speed = MEDIUM;
-      }
-    } else if(current_speed == SLOW) {
-      if(roomba_speed > 150) {
-        roomba_speed -= acceleration;
-      }
-      if(roomba_speed > 150) {
-        last_speed = SLOW;
-      }
+  } else if(current_speed == last_speed) {
+    if(roomba_speed < -380) {
+      roomba_speed += acceleration;
+    } else if(roomba_speed > -340) {
+      roomba_speed -= acceleration;
+    }
+    last_speed = NO_SPEED;
+  }
+}
+
+void acceleration_medium() {
+  if(current_speed != last_speed && (current_speed == FAST || current_speed == MEDIUM)) {
+    roomba_speed += acceleration;
+    if(roomba_speed > 500) {
+      last_speed = FAST;
+    } else if(roomba_speed > 350) {
+      last_speed = MEDIUM;
     } else {
-      roomba_speed = 0;
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed != last_speed && current_speed == SLOW) {
+    roomba_speed -= acceleration;
+    if(roomba_speed > 150){
+      last_speed = SLOW;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed == last_speed) {
+    if(roomba_speed > 380) {
+      roomba_speed += acceleration;
+    } else if(roomba_speed < 340) {
+      roomba_speed -= acceleration;
+    }
+    last_speed = NO_SPEED;
+  }
+}
+
+void acceleration_reverse_fast() {
+  if(current_speed != last_speed && current_speed == REVERSE_FAST){
+    roomba_speed -= acceleration;
+    if(roomba_speed < -500){
+      last_speed = REVERSE_FAST;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed != last_speed && (current_speed == REVERSE_MEDIUM || current_speed == REVERSE_SLOW)){
+    roomba_speed += acceleration;
+    if(roomba_speed < -350) {
+      last_speed = REVERSE_MEDIUM;
+    } else if(roomba_speed < -500) {
+      last_speed = REVERSE_FAST;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  }
+}
+
+void acceleration_fast() {
+  if(current_speed != last_speed && current_speed == FAST) {
+    roomba_speed += acceleration;
+    if(roomba_speed > 500) {
+      last_speed = FAST;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed != last_speed && (current_speed == SLOW || current_speed == MEDIUM)) {
+    roomba_speed -= acceleration;
+    if(roomba_speed > 350) {
+      last_speed = MEDIUM;
+    } else if(roomba_speed > 150){
+      last_speed = SLOW;
+    } else {
       last_speed = NO_SPEED;
     }
   }
@@ -421,6 +408,122 @@ void send_movement_packet()
   Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
 }
 
+void send_song_packet()
+{
+  if(song_fire_flag){
+    if(song_rotation == 0){
+    send_packet.type = COMMAND;
+    memcpy(send_packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
+    send_packet.payload.command.command = 140;
+    send_packet.payload.command.num_arg_bytes = 18;
+    send_packet.payload.command.arguments[0] = 1;
+    send_packet.payload.command.arguments[1] = 8;
+
+    send_packet.payload.command.arguments[2] = 103; // G
+    send_packet.payload.command.arguments[3] = 32;
+    send_packet.payload.command.arguments[4] = 102; // F#
+    send_packet.payload.command.arguments[5] = 32;
+    send_packet.payload.command.arguments[6] = 99; // D#
+    send_packet.payload.command.arguments[7] = 32;
+    send_packet.payload.command.arguments[8] = 93; // A
+    send_packet.payload.command.arguments[9] = 32;
+    send_packet.payload.command.arguments[10] = 104; // G#
+    send_packet.payload.command.arguments[11] = 32;
+    send_packet.payload.command.arguments[12] = 100; // E
+    send_packet.payload.command.arguments[13] = 32;
+    send_packet.payload.command.arguments[14] = 104; // G#
+    send_packet.payload.command.arguments[15] = 32;
+    send_packet.payload.command.arguments[16] = 96; // C
+    send_packet.payload.command.arguments[17] = 32;
+
+    Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
+
+    send_packet.type = COMMAND;
+    memcpy(send_packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
+    send_packet.payload.command.command = 141;
+    send_packet.payload.command.num_arg_bytes = 1;
+    send_packet.payload.command.arguments[0] = 1;
+    
+    Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
+
+    song_fire_flag = 0;
+    song_rotation++;
+  } else {
+    send_packet.type = COMMAND;
+    memcpy(send_packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
+    send_packet.payload.command.command = 140;
+    send_packet.payload.command.num_arg_bytes = 18;
+    send_packet.payload.command.arguments[0] = 2;
+    send_packet.payload.command.arguments[1] = 8;
+
+    send_packet.payload.command.arguments[2] = 78; // F#
+    send_packet.payload.command.arguments[3] = 32;
+    send_packet.payload.command.arguments[4] = 74; // D
+    send_packet.payload.command.arguments[5] = 32;
+    send_packet.payload.command.arguments[6] = 78; // F#
+    send_packet.payload.command.arguments[7] = 32;
+    send_packet.payload.command.arguments[8] = 74; // D
+    send_packet.payload.command.arguments[9] = 32;
+    send_packet.payload.command.arguments[10] = 70; // A#
+    send_packet.payload.command.arguments[11] = 32;
+    send_packet.payload.command.arguments[12] = 78; // F#
+    send_packet.payload.command.arguments[13] = 32;
+    send_packet.payload.command.arguments[14] = 70; // A#
+    send_packet.payload.command.arguments[15] = 32;
+    send_packet.payload.command.arguments[16] = 78; // F#
+    send_packet.payload.command.arguments[17] = 32;
+
+    Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
+
+    send_packet.type = COMMAND;
+    memcpy(send_packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
+    send_packet.payload.command.command = 141;
+    send_packet.payload.command.num_arg_bytes = 1;
+    send_packet.payload.command.arguments[0] = 2;
+    
+    Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
+
+    song_fire_flag = 0;
+    song_rotation = 0;
+  } 
+//  else {
+//    send_packet.type = COMMAND;
+//    memcpy(send_packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
+//    send_packet.payload.command.command = 140;
+//    send_packet.payload.command.num_arg_bytes = 14;
+//    send_packet.payload.command.arguments[0] = 3;
+//    send_packet.payload.command.arguments[1] = 8;
+//
+//    send_packet.payload.command.arguments[2] = 59; // B
+//    send_packet.payload.command.arguments[3] = 32;
+//    send_packet.payload.command.arguments[4] = 63; // D#
+//    send_packet.payload.command.arguments[5] = 32;
+//    send_packet.payload.command.arguments[6] = 57; // A
+//    send_packet.payload.command.arguments[7] = 32;
+//    send_packet.payload.command.arguments[8] = 59; // B
+//    send_packet.payload.command.arguments[9] = 32;
+//    send_packet.payload.command.arguments[10] = 63; // D#
+//    send_packet.payload.command.arguments[11] = 32;
+//    send_packet.payload.command.arguments[12] = 57; // A
+//    send_packet.payload.command.arguments[13] = 32;
+//
+//    Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
+//
+//    send_packet.type = COMMAND;
+//    memcpy(send_packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
+//    send_packet.payload.command.command = 141;
+//    send_packet.payload.command.num_arg_bytes = 1;
+//    send_packet.payload.command.arguments[0] = 3;
+//    
+//    Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
+//
+//    song_fire_flag = 0;
+//    song_rotation = 0;
+//  }
+  }
+}
+
+
 // task function for PulsePin task
 void poll_button_switch_task()
 {
@@ -441,6 +544,7 @@ void poll_button_switch_task()
       button_switch_state = switch_reading;
       if (button_switch_state == LOW) {
         ir_fire_flag = 1;
+        song_fire_flag = 1;
       }
     }
   }
@@ -461,8 +565,8 @@ void ir_task()
      send_packet.payload.ir_command.servo_angle = 0;
 
      Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
-     
      ir_fire_flag = 0;
+     
   }
 }
 
@@ -519,6 +623,7 @@ void setup()
   Scheduler_StartTask(0, 100, poll_button_movement_task);
   Scheduler_StartTask(0, 50, poll_button_switch_task);
   Scheduler_StartTask(5, 50, ir_task);
+  Scheduler_StartTask(10, 50, send_song_packet);
   Scheduler_StartTask(10, 200, receive_packets_task);
   Serial.begin(9600);
 }
