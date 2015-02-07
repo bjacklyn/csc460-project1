@@ -11,6 +11,31 @@ const int button_switch_pin = 3;
 const int button_movement_pin = 0;
 const int button_rotation_pin = 1;
 
+enum packet_send {
+  SEND,
+  STOP
+};
+
+typedef enum packet_send PACKET_SEND;
+
+volatile PACKET_SEND stop_packet_send;
+
+enum speed_state {
+  SLOW,
+  MEDIUM,
+  FAST,
+  REVERSE_SLOW,
+  REVERSE_MEDIUM,
+  REVERSE_FAST,
+  NO_SPEED
+};
+// enum for state of speed of the roomba
+typedef enum speed_state SPEED_STATE;
+
+volatile SPEED_STATE last_speed;
+
+volatile SPEED_STATE current_speed;
+
 const long debounce_delay = 50;                // the debounce time for button presses; increase if the output flickers
 
 volatile long last_debounce_time = 0;          // the last time the output pin was toggled
@@ -29,40 +54,371 @@ volatile int button_switch_state = LOW;        // the current reading from the i
 volatile int last_button_switch_state = LOW;   // the previous reading from the input pin
 
 volatile int ir_fire_flag = 0;
+volatile int song_fire_flag = 0;
+volatile int song_rotation = 0;
+volatile int no_speed_flag = 0;
+volatile int no_rotation_flag = 0;
+volatile int stop_packet_insurance = 0;
 volatile int roomba_speed = 0;
 volatile int roomba_rotation = 0x8000;
+volatile int acceleration = 10;
 
-// task function for button_movement
+// controls movement parameters
+void movement_set(uint16_t movement) {
+  if (movement > 450 && movement < 550) {
+    no_speed_flag = 0;
+    current_speed = NO_SPEED;
+    last_speed = NO_SPEED;
+    acceleration_calc();    
+  } 
+  else if (movement > 350 && movement < 450) {
+    current_speed = REVERSE_SLOW;
+    acceleration_calc();
+    no_speed_flag = 1;
+    stop_packet_insurance = 0;
+  } 
+  else if(movement > 550 && movement < 650){
+    current_speed = SLOW;
+    acceleration_calc();
+    no_speed_flag = 1;
+    stop_packet_insurance = 0;
+  } else if(movement > 150 && movement < 350) {
+    current_speed = REVERSE_MEDIUM;
+    acceleration_calc();
+    no_speed_flag = 1;
+    stop_packet_insurance = 0;
+  } else if(movement > 650 && movement < 950){
+    current_speed = MEDIUM;
+    acceleration_calc();
+    no_speed_flag = 1;
+    stop_packet_insurance = 0;
+  } else if(movement < 150) {
+    current_speed = REVERSE_FAST;
+    acceleration_calc();
+    no_speed_flag = 1;
+    stop_packet_insurance = 0;
+  } else {
+    current_speed = FAST;
+    acceleration_calc();
+    no_speed_flag = 1;
+    stop_packet_insurance = 0;
+  }
+}
+
+/**
+ controls the general acceleration based on the current state and the last state
+**/
+void acceleration_calc() {
+  switch (last_speed) {
+      case REVERSE_SLOW:
+        acceleration_reverse_slow();
+        break;
+      case REVERSE_MEDIUM:
+        acceleration_reverse_medium();
+        break;
+      case REVERSE_FAST:
+        acceleration_reverse_fast();
+        break;
+      case SLOW:
+        acceleration_slow();
+        break;
+      case MEDIUM:
+        acceleration_medium();
+        break;
+      case FAST:
+        acceleration_fast();
+        break;
+      default:
+        acceleration_no_speed();
+  }
+}
+
+/**
+ controls the acceleration when it is in the no speed state
+**/
+void acceleration_no_speed() {
+  if(current_speed != last_speed && (current_speed == FAST || current_speed == MEDIUM || current_speed == SLOW)) {
+    roomba_speed += acceleration;
+    if(roomba_speed > 500) {
+      last_speed = FAST;
+    } else if(roomba_speed > 350) {
+      last_speed = MEDIUM;
+    } else if(roomba_speed > 150) {
+      last_speed = SLOW;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed != last_speed && (current_speed == REVERSE_FAST || current_speed == REVERSE_MEDIUM || current_speed == REVERSE_SLOW)) {
+    roomba_speed -= acceleration;
+    if(roomba_speed < -500) {
+      last_speed = REVERSE_FAST;
+    } else if(roomba_speed < -350) {
+      last_speed = REVERSE_MEDIUM;
+    } else if(roomba_speed < -150) {
+      last_speed = REVERSE_SLOW;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  }  else {
+    last_speed = NO_SPEED;
+    roomba_speed = 0;
+  }
+}
+
+/**
+ controls the acceleration when it is in the reverse slow state
+**/
+void acceleration_reverse_slow() {
+  if(current_speed != last_speed && (current_speed == REVERSE_FAST || current_speed == REVERSE_MEDIUM || current_speed == REVERSE_SLOW)) {
+    roomba_speed -= acceleration;
+    if(roomba_speed < -500) {
+      last_speed = REVERSE_FAST;
+    } else if(roomba_speed < -350) {
+      last_speed = REVERSE_MEDIUM;
+    } else if(roomba_speed < -150) {
+      last_speed = REVERSE_SLOW;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed == last_speed) {
+    if(roomba_speed < -180) {
+      roomba_speed += acceleration;
+    } else if(roomba_speed > -140) {
+      roomba_speed -= acceleration;
+    }
+   last_speed = REVERSE_SLOW; 
+  }
+}
+
+/**
+ controls the acceleration when it is in the slow state
+**/
+void acceleration_slow() {
+  if(current_speed != last_speed && (current_speed == FAST || current_speed == MEDIUM || current_speed == SLOW)) {
+    roomba_speed += acceleration;
+    if(roomba_speed > 500) {
+      last_speed = FAST;
+    } else if(roomba_speed > 350) {
+      last_speed = MEDIUM;
+    } else if(roomba_speed > 150) {
+      last_speed = SLOW;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed == last_speed) {
+    if(roomba_speed > 180) {
+      roomba_speed -= acceleration;
+    } else if(roomba_speed < 140) {
+      roomba_speed += acceleration;
+    }
+    last_speed = SLOW;
+  }
+}
+
+/**
+ controls the acceleration when it is in the reverse medium state
+**/
+void acceleration_reverse_medium() {
+  if(current_speed != last_speed && (current_speed == REVERSE_FAST || current_speed == REVERSE_MEDIUM)) {
+    roomba_speed -= acceleration;
+    if(roomba_speed < -500) {
+      last_speed = REVERSE_FAST;
+    } else if(roomba_speed < -350) {
+      last_speed = REVERSE_MEDIUM;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed != last_speed && current_speed == REVERSE_SLOW) {
+    roomba_speed += acceleration;
+    if(roomba_speed < -150) {
+      last_speed = REVERSE_SLOW;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed == last_speed) {
+    if(roomba_speed < -380) {
+      roomba_speed += acceleration;
+    } else if(roomba_speed > -340) {
+      roomba_speed -= acceleration;
+    }
+    last_speed = NO_SPEED;
+  }
+}
+
+/**
+ controls the acceleration when it is in the medium state
+**/
+void acceleration_medium() {
+  if(current_speed != last_speed && (current_speed == FAST || current_speed == MEDIUM)) {
+    roomba_speed += acceleration;
+    if(roomba_speed > 500) {
+      last_speed = FAST;
+    } else if(roomba_speed > 350) {
+      last_speed = MEDIUM;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed != last_speed && current_speed == SLOW) {
+    roomba_speed -= acceleration;
+    if(roomba_speed > 150){
+      last_speed = SLOW;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed == last_speed) {
+    if(roomba_speed > 380) {
+      roomba_speed += acceleration;
+    } else if(roomba_speed < 340) {
+      roomba_speed -= acceleration;
+    }
+    last_speed = NO_SPEED;
+  }
+}
+
+/**
+ controls the acceleration when it is in the reverse fast state
+**/
+void acceleration_reverse_fast() {
+  if(current_speed != last_speed && current_speed == REVERSE_FAST){
+    roomba_speed -= acceleration;
+    if(roomba_speed < -500){
+      last_speed = REVERSE_FAST;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed != last_speed && (current_speed == REVERSE_MEDIUM || current_speed == REVERSE_SLOW)){
+    roomba_speed += acceleration;
+    if(roomba_speed < -350) {
+      last_speed = REVERSE_MEDIUM;
+    } else if(roomba_speed < -500) {
+      last_speed = REVERSE_FAST;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  }
+}
+
+/**
+ controls the acceleration when it is in the fast state
+**/
+void acceleration_fast() {
+  if(current_speed != last_speed && current_speed == FAST) {
+    roomba_speed += acceleration;
+    if(roomba_speed > 500) {
+      last_speed = FAST;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  } else if(current_speed != last_speed && (current_speed == SLOW || current_speed == MEDIUM)) {
+    roomba_speed -= acceleration;
+    if(roomba_speed > 350) {
+      last_speed = MEDIUM;
+    } else if(roomba_speed > 150){
+      last_speed = SLOW;
+    } else {
+      last_speed = NO_SPEED;
+    }
+  }
+}
+
+/**
+ controls rotation parameters
+**/
+void rotation_set(uint16_t rotation) {
+  if (rotation > 450 && rotation < 550) {
+    roomba_rotation = 0x8000;
+    no_rotation_flag = 0;
+  } 
+  else if (rotation > 350 && rotation < 450) {
+    roomba_speed = 150;
+    roomba_rotation = 0xFFFF;
+    no_rotation_flag = 1;
+    stop_packet_insurance = 0;
+  } 
+  else if (rotation > 150 && rotation < 350) {
+    roomba_speed = 250;
+    roomba_rotation = 0xFFFF;
+    no_rotation_flag = 1;
+    stop_packet_insurance = 0;
+  }
+  else if (rotation < 150) {
+    roomba_speed = 350;
+    roomba_rotation = 0xFFFF;
+    no_rotation_flag = 1;
+    stop_packet_insurance = 0;
+  }
+  else if (rotation > 550 && rotation < 650) {
+    roomba_speed = 150;
+    roomba_rotation = 0;
+    no_rotation_flag = 1;
+    stop_packet_insurance = 0;
+  }
+  else if (rotation > 650 && rotation < 950) {
+    roomba_speed = 250;
+    roomba_rotation = 0;
+    no_rotation_flag = 1;
+    stop_packet_insurance = 0;
+  } 
+  else {
+    roomba_speed = 350;
+    roomba_rotation = 0;
+    no_rotation_flag = 1;
+    stop_packet_insurance = 0;
+  }
+}
+
+/** 
+ controls angle parameters
+**/
+void angle_set(uint16_t movement, uint16_t rotation) {
+  if(movement > 950 && rotation > 950) {
+    roomba_speed = 300;
+    roomba_rotation = 400;
+    no_rotation_flag = 1;
+    stop_packet_insurance = 0;
+  } else if(movement > 950 && rotation < 150) {
+    roomba_speed = 300;
+    roomba_rotation = -400;
+    no_rotation_flag = 1;
+    stop_packet_insurance = 0;
+  } else if(movement < 150 && rotation < 150) {
+    roomba_speed = -300;
+    roomba_rotation = 400;
+    no_rotation_flag = 1;
+    stop_packet_insurance = 0;
+  } else if(movement < 150 && rotation > 950) {
+    roomba_speed = -300;
+    roomba_rotation = -400;
+    no_rotation_flag = 1;
+    stop_packet_insurance = 0;
+  }
+}
+/**
+task function for button_movement
+**/
 void poll_button_movement_task()
 {
   int movement = analogRead(button_movement_pin); 
   int rotation = analogRead(button_rotation_pin); 
 
-  if (movement > 400 && movement < 600) {
-    roomba_speed = 0;
-  } 
-  else if (movement < 400) {
-    roomba_speed = -200;
-  } 
-  else {
-    roomba_speed = 200;   
+  movement_set(movement);
+  rotation_set(rotation);
+  angle_set(movement, rotation);
+  // checks if it should send the packet sends the packet
+  if(no_speed_flag == 1 || no_rotation_flag == 1){
+    send_movement_packet();
+    stop_packet_send = SEND;
+  } else {
+    if(stop_packet_send == SEND || stop_packet_insurance < 10) {
+      stop_packet_insurance++;
+      send_movement_packet();
+    }
   }
-  
-  if (rotation > 400 && rotation < 600) {
-    roomba_rotation = 0x8000;
-  } 
-  else if (rotation < 400) {
-    roomba_speed = 200;
-    roomba_rotation = 0xFFFF;
-  } 
-  else {
-    roomba_speed = 200;
-    roomba_rotation = 0;
-  }
-  
-  send_movement_packet();
 }
 
+/**
+Command that sends the packet for movement
+**/
 void send_movement_packet() 
 {
   send_packet.type = COMMAND;
@@ -76,6 +432,91 @@ void send_movement_packet()
 
   Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
 }
+
+/**
+Creates the song for the roomba to store and play the song depending where the incrementor is at
+**/
+void send_song_packet()
+{
+  if(song_fire_flag){
+    if(song_rotation == 0){
+    send_packet.type = COMMAND;
+    memcpy(send_packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
+    send_packet.payload.command.command = 140;
+    send_packet.payload.command.num_arg_bytes = 18;
+    send_packet.payload.command.arguments[0] = 1;
+    send_packet.payload.command.arguments[1] = 8;
+    // Zelda's Mystery Sound
+    send_packet.payload.command.arguments[2] = 103; // G
+    send_packet.payload.command.arguments[3] = 20;
+    send_packet.payload.command.arguments[4] = 102; // F#
+    send_packet.payload.command.arguments[5] = 20;
+    send_packet.payload.command.arguments[6] = 99; // D#
+    send_packet.payload.command.arguments[7] = 20;
+    send_packet.payload.command.arguments[8] = 93; // A
+    send_packet.payload.command.arguments[9] = 20;
+    send_packet.payload.command.arguments[10] = 104; // G#
+    send_packet.payload.command.arguments[11] = 20;
+    send_packet.payload.command.arguments[12] = 100; // E
+    send_packet.payload.command.arguments[13] = 20;
+    send_packet.payload.command.arguments[14] = 104; // G#
+    send_packet.payload.command.arguments[15] = 20;
+    send_packet.payload.command.arguments[16] = 96; // C
+    send_packet.payload.command.arguments[17] = 20;
+    // set song
+    Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
+    
+    send_packet.type = COMMAND;
+    memcpy(send_packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
+    send_packet.payload.command.command = 141;
+    send_packet.payload.command.num_arg_bytes = 1;
+    send_packet.payload.command.arguments[0] = 1;
+    // play song
+    Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
+
+    song_fire_flag = 0;
+    song_rotation++; // rotate next song
+  } else {
+    send_packet.type = COMMAND;
+    memcpy(send_packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
+    send_packet.payload.command.command = 140;
+    send_packet.payload.command.num_arg_bytes = 18;
+    send_packet.payload.command.arguments[0] = 2;
+    send_packet.payload.command.arguments[1] = 8;
+    // Zelda’s The Bolero Of Fire
+    send_packet.payload.command.arguments[2] = 78; // F#
+    send_packet.payload.command.arguments[3] = 32;
+    send_packet.payload.command.arguments[4] = 74; // D
+    send_packet.payload.command.arguments[5] = 32;
+    send_packet.payload.command.arguments[6] = 78; // F#
+    send_packet.payload.command.arguments[7] = 32;
+    send_packet.payload.command.arguments[8] = 74; // D
+    send_packet.payload.command.arguments[9] = 32;
+    send_packet.payload.command.arguments[10] = 70; // A#
+    send_packet.payload.command.arguments[11] = 32;
+    send_packet.payload.command.arguments[12] = 78; // F#
+    send_packet.payload.command.arguments[13] = 32;
+    send_packet.payload.command.arguments[14] = 70; // A#
+    send_packet.payload.command.arguments[15] = 32;
+    send_packet.payload.command.arguments[16] = 78; // F#
+    send_packet.payload.command.arguments[17] = 32;
+
+    Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
+
+    send_packet.type = COMMAND;
+    memcpy(send_packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
+    send_packet.payload.command.command = 141;
+    send_packet.payload.command.num_arg_bytes = 1;
+    send_packet.payload.command.arguments[0] = 2;
+    
+    Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
+
+    song_fire_flag = 0;
+    song_rotation = 0; // reset song rotation
+  } 
+  }
+}
+
 
 // task function for PulsePin task
 void poll_button_switch_task()
@@ -97,6 +538,7 @@ void poll_button_switch_task()
       button_switch_state = switch_reading;
       if (button_switch_state == LOW) {
         ir_fire_flag = 1;
+        song_fire_flag = 1;
       }
     }
   }
@@ -106,6 +548,9 @@ void poll_button_switch_task()
   last_button_switch_state = switch_reading;
 }
 
+/**
+controls the firing of the IR
+**/
 void ir_task()
 {
   if (ir_fire_flag) {
@@ -113,15 +558,18 @@ void ir_task()
      send_packet.type = IR_COMMAND;
      memcpy(send_packet.payload.ir_command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
      send_packet.payload.ir_command.ir_command = SEND_BYTE;
-     send_packet.payload.ir_command.ir_data = 66;
+     send_packet.payload.ir_command.ir_data = 65;
      send_packet.payload.ir_command.servo_angle = 0;
 
      Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
-     
      ir_fire_flag = 0;
+     
   }
 }
 
+/**
+ checks if thre is a packet sent back
+**/
 void receive_packets_task()
 {
   if (rxflag)
@@ -148,6 +596,9 @@ void idle(uint32_t idle_period)
   digitalWrite(idle_pin, LOW);
 }
 
+/**
+initial setup
+**/
 void setup()
 {
   pinMode(idle_pin, OUTPUT);
@@ -172,13 +623,16 @@ void setup()
   // Start task arguments are:
   // start offset in ms, period in ms, function callback
  
-  Scheduler_StartTask(0, 20, poll_button_movement_task);
+  Scheduler_StartTask(0, 100, poll_button_movement_task);
   Scheduler_StartTask(0, 50, poll_button_switch_task);
   Scheduler_StartTask(5, 50, ir_task);
+  Scheduler_StartTask(10, 50, send_song_packet);
   Scheduler_StartTask(10, 200, receive_packets_task);
-  Serial.begin(9600);
 }
- 
+
+/**
+loop of the program
+**/
 void loop()
 {
   uint32_t idle_period = Scheduler_Dispatch();
@@ -188,7 +642,13 @@ void loop()
   }
 }
 
+/**
+triggered when it receives a ACK
+**/
 void radio_rxhandler(uint8_t pipe_number)
 {
+  if(no_speed_flag == 0 && no_rotation_flag == 0) {
+    stop_packet_send = STOP;
+  }
   rxflag = 1;
 }
