@@ -181,7 +181,7 @@ void acceleration_reverse_slow() {
   } else if(current_speed == last_speed) {
     if(roomba_speed < -180) {
       roomba_speed += acceleration;
-    } else if(rooba_speed > -140) {
+    } else if(roomba_speed > -140) {
       roomba_speed -= acceleration;
     }
    last_speed = REVERSE_SLOW; 
@@ -420,21 +420,21 @@ void send_song_packet()
     send_packet.payload.command.arguments[1] = 8;
 
     send_packet.payload.command.arguments[2] = 103; // G
-    send_packet.payload.command.arguments[3] = 32;
+    send_packet.payload.command.arguments[3] = 20;
     send_packet.payload.command.arguments[4] = 102; // F#
-    send_packet.payload.command.arguments[5] = 32;
+    send_packet.payload.command.arguments[5] = 20;
     send_packet.payload.command.arguments[6] = 99; // D#
-    send_packet.payload.command.arguments[7] = 32;
+    send_packet.payload.command.arguments[7] = 20;
     send_packet.payload.command.arguments[8] = 93; // A
-    send_packet.payload.command.arguments[9] = 32;
+    send_packet.payload.command.arguments[9] = 20;
     send_packet.payload.command.arguments[10] = 104; // G#
-    send_packet.payload.command.arguments[11] = 32;
+    send_packet.payload.command.arguments[11] = 20;
     send_packet.payload.command.arguments[12] = 100; // E
-    send_packet.payload.command.arguments[13] = 32;
+    send_packet.payload.command.arguments[13] = 20;
     send_packet.payload.command.arguments[14] = 104; // G#
-    send_packet.payload.command.arguments[15] = 32;
+    send_packet.payload.command.arguments[15] = 20;
     send_packet.payload.command.arguments[16] = 96; // C
-    send_packet.payload.command.arguments[17] = 32;
+    send_packet.payload.command.arguments[17] = 20;
 
     Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
 
@@ -486,40 +486,6 @@ void send_song_packet()
     song_fire_flag = 0;
     song_rotation = 0;
   } 
-//  else {
-//    send_packet.type = COMMAND;
-//    memcpy(send_packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
-//    send_packet.payload.command.command = 140;
-//    send_packet.payload.command.num_arg_bytes = 14;
-//    send_packet.payload.command.arguments[0] = 3;
-//    send_packet.payload.command.arguments[1] = 8;
-//
-//    send_packet.payload.command.arguments[2] = 59; // B
-//    send_packet.payload.command.arguments[3] = 32;
-//    send_packet.payload.command.arguments[4] = 63; // D#
-//    send_packet.payload.command.arguments[5] = 32;
-//    send_packet.payload.command.arguments[6] = 57; // A
-//    send_packet.payload.command.arguments[7] = 32;
-//    send_packet.payload.command.arguments[8] = 59; // B
-//    send_packet.payload.command.arguments[9] = 32;
-//    send_packet.payload.command.arguments[10] = 63; // D#
-//    send_packet.payload.command.arguments[11] = 32;
-//    send_packet.payload.command.arguments[12] = 57; // A
-//    send_packet.payload.command.arguments[13] = 32;
-//
-//    Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
-//
-//    send_packet.type = COMMAND;
-//    memcpy(send_packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
-//    send_packet.payload.command.command = 141;
-//    send_packet.payload.command.num_arg_bytes = 1;
-//    send_packet.payload.command.arguments[0] = 3;
-//    
-//    Radio_Transmit(&send_packet, RADIO_WAIT_FOR_TX);
-//
-//    song_fire_flag = 0;
-//    song_rotation = 0;
-//  }
   }
 }
 
@@ -625,7 +591,6 @@ void setup()
   Scheduler_StartTask(5, 50, ir_task);
   Scheduler_StartTask(10, 50, send_song_packet);
   Scheduler_StartTask(10, 200, receive_packets_task);
-  Serial.begin(9600);
 }
  
 void loop()
